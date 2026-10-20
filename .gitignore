@@ -1,0 +1,42 @@
+# ==========================================
+# Git Ignore for Disaster Relief Optimizer
+# ==========================================
+
+# 1. Backend Build & Output Artifacts (Do NOT commit)
+backend/target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# 2. Frontend Dependencies & Build Output (Do NOT commit)
+frontend/node_modules/
+**/node_modules/
+frontend/dist/
+**/dist/
+.eslintcache
+*.local
+
+# 3. Local Embedded Tools (Maven binaries)
+tools/
+.mvn/wrapper/maven-wrapper.jar
+
+# 4. IDE & Editor Metadata
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# 5. Logs & Temporary Files
+*.log
+logs/
+*.tmp
+*.bak
+.system_generated/

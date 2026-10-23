@@ -13,7 +13,7 @@ export default function ReliefMap({
   const mapInstanceRef = useRef(null);
   const layerGroupRef = useRef(null);
 
-  // Initialize the map only once and clean it up on unmount.
+  // Initialize the map once and clean it up on unmount.
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -23,22 +23,20 @@ export default function ReliefMap({
       zoomControl: true,
     });
 
-    // OpenStreetMap tiles: no CARTO API key required.
-    L.tileLayer(
-      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }
-    ).addTo(map);
+    // OpenStreetMap tiles do not require a CARTO API key.
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
 
     layerGroupRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
-    // Recalculate dimensions after the map container renders.
     requestAnimationFrame(() => {
-      map.invalidateSize();
+      if (mapInstanceRef.current === map) {
+        map.invalidateSize();
+      }
     });
 
     return () => {
@@ -48,7 +46,7 @@ export default function ReliefMap({
     };
   }, []);
 
-  // Update markers, routes, and popups whenever data changes.
+  // Refresh markers, popups, and routes when data changes.
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layerGroup = layerGroupRef.current;
@@ -58,17 +56,25 @@ export default function ReliefMap({
     layerGroup.clearLayers();
     const bounds = [];
 
-    const hasCoordinates = (item) =>
-      item?.latitude != null &&
-      item?.longitude != null &&
-      Number.isFinite(Number(item.latitude)) &&
-      Number.isFinite(Number(item.longitude)) &&
-      Number(item.latitude) >= -90 &&
-      Number(item.latitude) <= 90 &&
-      Number(item.longitude) >= -180 &&
-      Number(item.longitude) <= 180;
+    const hasCoordinates = (item) => {
+      if (item?.latitude == null || item?.longitude == null) {
+        return false;
+      }
 
-    const getPosition = (item) => [
+      const latitude = Number(item.latitude);
+      const longitude = Number(item.longitude);
+
+      return (
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180
+      );
+    };
+
+    const coordinates = (item) => [
       Number(item.latitude),
       Number(item.longitude),
     ];
@@ -91,17 +97,18 @@ export default function ReliefMap({
           box-shadow:0 0 14px rgba(56,189,248,.6);
         ">🏢</div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
     });
 
     const getSeverityColor = (severity) => {
-      switch (severity) {
+      switch (String(severity || '').toUpperCase()) {
         case 'CRITICAL':
           return '#ef4444';
         case 'HIGH':
           return '#f97316';
         case 'MODERATE':
+        case 'MEDIUM':
           return '#f59e0b';
         case 'LOW':
           return '#3b82f6';
@@ -110,171 +117,173 @@ export default function ReliefMap({
       }
     };
 
-    // Render central depots.
+    // Draw central relief depots.
     depots.forEach((depot) => {
       if (!hasCoordinates(depot)) return;
 
-      const marker = L.marker(getPosition(depot), {
+      const food =
+        depot.inventories?.find((i) => i.supplyType === 'FOOD')
+          ?.availableQuantity ?? 0;
+      const water =
+        depot.inventories?.find((i) => i.supplyType === 'WATER')
+          ?.availableQuantity ?? 0;
+      const medicine =
+        depot.inventories?.find((i) => i.supplyType === 'MEDICINE')
+          ?.availableQuantity ?? 0;
+
+      const marker = L.marker(coordinates(depot), {
         icon: depotIcon,
       }).bindPopup(`
         <div style="font-family:sans-serif;color:#1e293b;padding:4px">
           <div style="font-size:11px;font-weight:bold;color:#2563eb;text-transform:uppercase">
             Central Depot (${depot.code ?? 'N/A'})
           </div>
-          <h4 style="margin:3px 0 6px;font-size:14px">
-            ${depot.name ?? 'Unnamed Depot'}
+          <h4 style="margin:5px 0;font-size:14px">
+            ${depot.name ?? 'Relief Depot'}
           </h4>
-          <div style="font-size:12px;margin-bottom:4px">
-            <strong>Location:</strong> ${depot.address || 'Central Sector'}
-          </div>
-          <div style="font-size:12px;margin-bottom:4px">
-            <strong>Storage Capacity:</strong>
-            ${Number(depot.maxCapacity ?? 0).toLocaleString()} units
-          </div>
-          <div style="font-size:12px;margin-bottom:4px">
-            <strong>Contact:</strong> ${depot.contactPerson || 'Officer in Charge'}
-            (${depot.phone || 'N/A'})
-          </div>
-          <div style="font-size:11px;margin-top:6px;padding:4px 6px;background:#e0f2fe;border-radius:4px;color:#0369a1;font-weight:600">
-            Food: ${depot.inventories?.find(i => i.supplyType === 'FOOD')?.availableQuantity ?? 0} kg |
-            Water: ${depot.inventories?.find(i => i.supplyType === 'WATER')?.availableQuantity ?? 0} L |
-            Meds: ${depot.inventories?.find(i => i.supplyType === 'MEDICINE')?.availableQuantity ?? 0} kits
+          <div><strong>Location:</strong> ${depot.address ?? 'Central Sector'}</div>
+          <div><strong>Storage Capacity:</strong> ${depot.maxCapacity ?? 0} units</div>
+          <div><strong>Contact:</strong> ${depot.contactPerson ?? 'Officer in Charge'}</div>
+          <div><strong>Phone:</strong> ${depot.phone ?? 'N/A'}</div>
+          <hr/>
+          <div style="font-size:12px;background:#e0f2fe;padding:6px;border-radius:4px">
+            <strong>Food:</strong> ${food} kg<br/>
+            <strong>Water:</strong> ${water} L<br/>
+            <strong>Medicine:</strong> ${medicine} kits
           </div>
         </div>
       `);
 
       layerGroup.addLayer(marker);
-      bounds.push(getPosition(depot));
+      bounds.push(coordinates(depot));
     });
 
-    // Render disaster-affected distribution points.
-    distributionPoints.forEach((dp) => {
-      if (!hasCoordinates(dp)) return;
+    // Draw disaster-affected distribution points.
+    distributionPoints.forEach((point) => {
+      if (!hasCoordinates(point)) return;
 
-      const color = getSeverityColor(dp.severity);
+      const color = getSeverityColor(point.severity);
 
-      const dpIcon = L.divIcon({
+      const pointIcon = L.divIcon({
         className: 'custom-dp-marker',
         html: `
           <div style="
             background:${color};
             border:2px solid white;
             color:white;
-            width:30px;
-            height:30px;
+            width:32px;
+            height:32px;
             border-radius:50%;
             display:flex;
             align-items:center;
             justify-content:center;
-            font-weight:bold;
-            font-size:12px;
+            font-size:13px;
             box-shadow:0 0 12px ${color};
-          ">⚠️</div>
+          ">⚠</div>
         `,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
       });
 
-      const marker = L.marker(getPosition(dp), {
-        icon: dpIcon,
+      const marker = L.marker(coordinates(point), {
+        icon: pointIcon,
       }).bindPopup(`
         <div style="font-family:sans-serif;color:#1e293b;padding:4px">
-          <span style="background:${color};color:white;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;text-transform:uppercase">
-            ${dp.severity ?? 'UNKNOWN'} PRIORITY (Score: ${dp.priorityScore ?? 'N/A'}/5)
-          </span>
-          <h4 style="margin:6px 0 4px;font-size:14px">
-            ${dp.name ?? 'Unnamed Location'} (${dp.code ?? 'N/A'})
+          <strong style="color:${color}">
+            ${point.severity ?? 'UNKNOWN'} PRIORITY
+            (Score: ${point.priorityScore ?? 'N/A'}/5)
+          </strong>
+          <h4 style="margin:6px 0;font-size:14px">
+            ${point.name ?? 'Affected Location'} (${point.code ?? 'N/A'})
           </h4>
-          <div style="font-size:12px;margin-bottom:3px">
-            <strong>Population Affected:</strong>
-            ${Number(dp.affectedPopulation ?? 0).toLocaleString()} people
+          <div><strong>Population Affected:</strong>
+            ${Number(point.affectedPopulation ?? 0).toLocaleString()} people
           </div>
-          <div style="font-size:12px;margin-bottom:3px">
-            <strong>Address:</strong> ${dp.address || 'Disaster Zone'}
-          </div>
-          <div style="font-size:11px;margin-top:6px;padding:4px 6px;background:#fee2e2;border-radius:4px;color:#991b1b;font-weight:600">
-            DEMAND: Food ${dp.foodDemand ?? 0} kg |
-            Water ${dp.waterDemand ?? 0} L |
-            Meds ${dp.medicineDemand ?? 0} kits
+          <div><strong>Address:</strong> ${point.address ?? 'Disaster Zone'}</div>
+          <hr/>
+          <div style="background:#fee2e2;padding:6px;border-radius:4px">
+            <strong>Food Demand:</strong> ${point.foodDemand ?? 0} kg<br/>
+            <strong>Water Demand:</strong> ${point.waterDemand ?? 0} L<br/>
+            <strong>Medicine Demand:</strong> ${point.medicineDemand ?? 0} kits
           </div>
         </div>
       `);
 
       layerGroup.addLayer(marker);
-      bounds.push(getPosition(dp));
+      bounds.push(coordinates(point));
     });
 
-    // Render relief routes between depots and distribution points.
+    // Draw transport routes between depots and disaster zones.
     routes.forEach((route) => {
-      const src = depots.find(
-        (d) =>
-          (route.sourceDepotId != null && d.id === route.sourceDepotId) ||
+      const source = depots.find(
+        (depot) =>
+          (route.sourceDepotId != null &&
+            String(depot.id) === String(route.sourceDepotId)) ||
           (route.sourceDepotCode != null &&
-            d.code === route.sourceDepotCode)
+            depot.code === route.sourceDepotCode)
       );
 
-      const dst = distributionPoints.find(
-        (dp) =>
+      const destination = distributionPoints.find(
+        (point) =>
           (route.destinationPointId != null &&
-            dp.id === route.destinationPointId) ||
+            String(point.id) === String(route.destinationPointId)) ||
           (route.destinationPointCode != null &&
-            dp.code === route.destinationPointCode)
+            point.code === route.destinationPointCode)
       );
 
-      if (!src || !dst || !hasCoordinates(src) || !hasCoordinates(dst)) {
+      if (
+        !source ||
+        !destination ||
+        !hasCoordinates(source) ||
+        !hasCoordinates(destination)
+      ) {
         return;
       }
 
-      const isBlocked = route.isAvailable === false;
-      const color = isBlocked ? '#ef4444' : '#10b981';
+      const isBlocked =
+        route.isAvailable === false ||
+        String(route.isAvailable).toLowerCase() === 'false';
+
       const flowInfo = flowEdges.find(
         (edge) =>
           (edge.label != null && edge.label === route.routeCode) ||
-          (edge.from != null && edge.from === src.code)
+          (edge.routeCode != null && edge.routeCode === route.routeCode) ||
+          (edge.from != null && edge.from === source.code)
       );
 
-      const flowQty = Number(flowInfo?.flow ?? 0);
-      const weight = flowQty > 0 ? 5 : isBlocked ? 2.5 : 3.5;
+      const flowQuantity = Number(flowInfo?.flow ?? 0);
+      const color = isBlocked
+        ? '#ef4444'
+        : flowQuantity > 0
+          ? '#38bdf8'
+          : '#10b981';
 
-      const polyline = L.polyline(
-        [getPosition(src), getPosition(dst)],
+      const line = L.polyline(
+        [coordinates(source), coordinates(destination)],
         {
-          color: flowQty > 0 ? '#38bdf8' : color,
-          weight,
-          opacity: isBlocked ? 0.6 : 0.85,
+          color,
+          weight: flowQuantity > 0 ? 5 : 3,
+          opacity: isBlocked ? 0.7 : 0.9,
           dashArray: isBlocked ? '6, 8' : null,
         }
       ).bindPopup(`
-        <div style="font-family:sans-serif;color:#1e293b;padding:2px">
-          <div style="font-weight:bold;font-size:12px;color:${isBlocked ? '#dc2626' : '#059669'}">
-            ${isBlocked ? '⛔ ROUTE BLOCKED / IMPASSABLE' : '✅ AVAILABLE RELIEF CORRIDOR'}
-          </div>
-          <div style="font-size:12px;margin-top:4px">
-            <strong>Route:</strong> ${route.routeCode ?? 'N/A'}
-            (${src.name ?? src.code ?? 'Depot'} →
-            ${dst.name ?? dst.code ?? 'Distribution Point'})
-          </div>
-          <div style="font-size:12px">
-            <strong>Max Capacity:</strong> ${route.capacity ?? 0} units
-          </div>
-          <div style="font-size:12px">
-            <strong>Distance:</strong> ${route.distanceKm ?? 'N/A'} km |
-            <strong>Travel Time:</strong> ${route.travelTimeHours ?? 'N/A'} hrs
-          </div>
-          ${
-            flowQty > 0
-              ? `<div style="margin-top:4px;padding:2px 6px;background:#e0f2fe;color:#0284c7;font-weight:bold;border-radius:4px;font-size:11px">
-                  ⚡ Active Allocated Flow: ${flowQty} units
-                </div>`
-              : ''
-          }
+        <div style="font-family:sans-serif;color:#1e293b;padding:4px">
+          <strong style="color:${isBlocked ? '#dc2626' : '#059669'}">
+            ${isBlocked ? 'ROUTE BLOCKED' : 'AVAILABLE RELIEF CORRIDOR'}
+          </strong>
+          <div><strong>Route:</strong> ${route.routeCode ?? 'N/A'}</div>
+          <div><strong>From:</strong> ${source.name ?? source.code ?? 'Depot'}</div>
+          <div><strong>To:</strong> ${destination.name ?? destination.code ?? 'Location'}</div>
+          <div><strong>Maximum Capacity:</strong> ${route.capacity ?? 0} units</div>
+          <div><strong>Distance:</strong> ${route.distanceKm ?? 'N/A'} km</div>
+          <div><strong>Travel Time:</strong> ${route.travelTimeHours ?? 'N/A'} hours</div>
+          <div><strong>Allocated Flow:</strong> ${flowQuantity} units</div>
         </div>
       `);
 
-      layerGroup.addLayer(polyline);
+      layerGroup.addLayer(line);
     });
 
-    // Fit the map to the available depot and distribution-point markers.
     if (bounds.length > 0) {
       map.fitBounds(bounds, {
         padding: [40, 40],
@@ -284,9 +293,10 @@ export default function ReliefMap({
       map.setView([20.5937, 78.9629], 5);
     }
 
-    // Leaflet needs this when its container size changes.
     requestAnimationFrame(() => {
-      map.invalidateSize();
+      if (mapInstanceRef.current === map) {
+        map.invalidateSize();
+      }
     });
   }, [depots, distributionPoints, routes, flowEdges]);
 

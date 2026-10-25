@@ -19,6 +19,7 @@ public class AppConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
+                                "https://arjundombara.github.io",
                                 "http://localhost:3000",
                                 "http://localhost:5173",
                                 "http://127.0.0.1:5173",

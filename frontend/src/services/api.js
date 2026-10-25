@@ -3,7 +3,7 @@
  * Connects frontend React components to the Spring Boot REST backend.
  */
 
-const BASE_URL = '/api';
+const BASE_URL = 'https://disaster-relief-supply-chain-optimizer.onrender.com/api';
 
 async function request(endpoint, options = {}) {
   const config = {

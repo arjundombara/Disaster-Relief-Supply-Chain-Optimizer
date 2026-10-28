@@ -18,11 +18,15 @@ import java.util.stream.Collectors;
 public class DistributionPointService {
 
     private final DistributionPointRepository dpRepository;
+    private final com.relief.optimizer.repository.DisasterRepository disasterRepository;
 
     @Autowired
-    public DistributionPointService(DistributionPointRepository dpRepository) {
+    public DistributionPointService(DistributionPointRepository dpRepository,
+                                  com.relief.optimizer.repository.DisasterRepository disasterRepository) {
         this.dpRepository = dpRepository;
+        this.disasterRepository = disasterRepository;
     }
+
 
     public List<DistributionPointDto> getAllDistributionPoints() {
         return dpRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
@@ -68,6 +72,7 @@ public class DistributionPointService {
         dp.setPriorityScore(dto.getPriorityScore() != null ? dto.getPriorityScore() : 3);
         dp.setAffectedPopulation(dto.getAffectedPopulation() != null ? dto.getAffectedPopulation() : 0);
         dp.setStatus(dto.getStatus() != null ? dto.getStatus() : "ACTIVE");
+        dp.setDisasterId(dto.getDisasterId());
         if (dto.getFoodDemand() != null) dp.setFoodDemand(dto.getFoodDemand());
         if (dto.getWaterDemand() != null) dp.setWaterDemand(dto.getWaterDemand());
         if (dto.getMedicineDemand() != null) dp.setMedicineDemand(dto.getMedicineDemand());
@@ -88,6 +93,11 @@ public class DistributionPointService {
         dto.setPriorityScore(dp.getPriorityScore());
         dto.setAffectedPopulation(dp.getAffectedPopulation());
         dto.setStatus(dp.getStatus());
+        dto.setDisasterId(dp.getDisasterId());
+        if (dp.getDisasterId() != null) {
+            disasterRepository.findById(dp.getDisasterId())
+                    .ifPresent(d -> dto.setDisasterName(d.getName()));
+        }
         dto.setFoodDemand(dp.getFoodDemand());
         dto.setWaterDemand(dp.getWaterDemand());
         dto.setMedicineDemand(dp.getMedicineDemand());
@@ -102,6 +112,7 @@ public class DistributionPointService {
         dto.setSatisfactionRate(demand > 0 ? (dp.getTotalDelivered() / demand) * 100.0 : 0.0);
         return dto;
     }
+
 
     private DistributionPoint fromDto(DistributionPointDto dto) {
         DistributionPoint dp = new DistributionPoint();

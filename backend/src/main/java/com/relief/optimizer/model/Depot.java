@@ -1,5 +1,7 @@
 package com.relief.optimizer.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import javax.persistence.*;
@@ -9,6 +11,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "depots")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Depot {
 
     @Id
@@ -45,7 +48,7 @@ public class Depot {
     private String status = "ACTIVE"; // ACTIVE, MAINTENANCE, CLOSED
 
     @OneToMany(mappedBy = "depot", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonIgnore
     private List<Inventory> inventories = new ArrayList<>();
 
     public Depot() {}

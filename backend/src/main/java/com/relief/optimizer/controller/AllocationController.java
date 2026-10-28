@@ -69,4 +69,63 @@ public class AllocationController {
                 ? Double.valueOf(payload.get("deliveredQuantity").toString()) : null;
         return ResponseEntity.ok(allocationService.updateShipmentStatus(id, newStatus, notes, recipient, qty));
     }
+
+    @GetMapping
+
+    @Operation(summary = "Get all distribution plan allocations")
+    public ResponseEntity<List<Allocation>> getAllAllocations() {
+        return ResponseEntity.ok(allocationService.getAllAllocations());
+    }
+
+    @PostMapping("/{id}/approve")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Approve distribution plan and reserve required depot supplies (Admin only)")
+    public ResponseEntity<Allocation> approvePlan(@PathVariable Long id, org.springframework.security.core.Authentication authentication) {
+        String admin = authentication != null ? authentication.getName() : "admin";
+        return ResponseEntity.ok(allocationService.approvePlan(id, admin));
+    }
+
+    @PostMapping("/shipments/{id}/assign")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Assign a worker to a delivery task (Admin only)")
+    public ResponseEntity<ShipmentDto> assignWorker(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> payload) {
+        Long workerId = Long.valueOf(payload.get("workerId").toString());
+        String workerName = (String) payload.get("workerName");
+        String priority = (String) payload.get("priority");
+        String instructions = (String) payload.get("instructions");
+        java.time.LocalDateTime deadline = payload.get("deadline") != null
+                ? java.time.LocalDateTime.parse(payload.get("deadline").toString()) : null;
+
+        return ResponseEntity.ok(allocationService.assignWorkerToTask(id, workerId, workerName, priority, deadline, instructions));
+    }
+
+    @PostMapping("/shipments/{id}/acknowledge")
+    @Operation(summary = "Acknowledge task assignment (Field Worker)")
+    public ResponseEntity<ShipmentDto> acknowledgeTask(@PathVariable Long id, org.springframework.security.core.Authentication authentication) {
+        Long workerId = 1L; // fallback
+        if (authentication != null && authentication.getPrincipal() instanceof com.relief.optimizer.security.UserDetailsImpl) {
+            workerId = ((com.relief.optimizer.security.UserDetailsImpl) authentication.getPrincipal()).getId();
+        }
+        return ResponseEntity.ok(allocationService.acknowledgeTask(id, workerId));
+    }
+
+    @GetMapping("/shipments/my")
+    @Operation(summary = "Get delivery tasks assigned to the current authenticated worker")
+    public ResponseEntity<List<ShipmentDto>> getMyShipments(org.springframework.security.core.Authentication authentication) {
+        Long workerId = 1L;
+        if (authentication != null && authentication.getPrincipal() instanceof com.relief.optimizer.security.UserDetailsImpl) {
+            workerId = ((com.relief.optimizer.security.UserDetailsImpl) authentication.getPrincipal()).getId();
+        }
+        return ResponseEntity.ok(allocationService.getShipmentsForWorker(workerId));
+    }
+
+    @GetMapping("/shipments/worker/{workerId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get tasks assigned to a specific worker (Admin only)")
+    public ResponseEntity<List<ShipmentDto>> getWorkerShipments(@PathVariable Long workerId) {
+        return ResponseEntity.ok(allocationService.getShipmentsForWorker(workerId));
+    }
 }
+

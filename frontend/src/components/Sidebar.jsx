@@ -8,20 +8,38 @@ import {
   Truck,
   BarChart3,
   FlaskConical,
-  LifeBuoy
+  LifeBuoy,
+  Flame,
+  ClipboardCheck,
+  Database,
+  UserCheck
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, counts = {} }) {
-  const navItems = [
+export default function Sidebar({ activeTab, setActiveTab, counts = {}, userRole = 'ADMIN' }) {
+  const isWorker = userRole === 'WORKER';
+
+  const adminNavItems = [
     { id: 'dashboard', label: 'EOC Command Desk', icon: LayoutDashboard },
+    { id: 'disasters', label: 'Disaster Directives', icon: Flame, count: counts.disasters, highlight: true },
     { id: 'depots', label: 'Depot Management', icon: Warehouse, count: counts.depots },
     { id: 'locations', label: 'Affected Locations', icon: MapPin, count: counts.locations },
     { id: 'routes', label: 'Route Corridors', icon: RouteIcon, count: counts.routes },
     { id: 'optimization', label: 'Supply Optimizer', icon: Zap, highlight: true },
     { id: 'deliveries', label: 'Delivery Tracking', icon: Truck, count: counts.shipments },
+    { id: 'approvals', label: 'Delivery Approvals', icon: ClipboardCheck, count: counts.pendingApprovals, badge: counts.pendingApprovals > 0 ? 'ALERT' : null },
+    { id: 'ledger', label: 'Inventory Ledger', icon: Database },
+    { id: 'worker-console', label: 'Field Unit View', icon: UserCheck },
     { id: 'reports', label: 'Reports & Export', icon: BarChart3 },
     { id: 'scenarios', label: 'Test Scenarios (1-8)', icon: FlaskConical, badge: 'TESTS' },
   ];
+
+  const workerNavItems = [
+    { id: 'worker-console', label: 'My Assigned Missions', icon: Truck, highlight: true },
+    { id: 'disasters', label: 'Official Directives', icon: Flame },
+    { id: 'dashboard', label: 'Regional Overview', icon: LayoutDashboard },
+  ];
+
+  const navItems = isWorker ? workerNavItems : adminNavItems;
 
   return (
     <aside className="sidebar">
@@ -47,11 +65,11 @@ export default function Sidebar({ activeTab, setActiveTab, counts = {} }) {
             >
               <Icon size={18} className="nav-icon" />
               <span>{item.label}</span>
-              {item.count !== undefined && item.count !== null && (
+              {item.count !== undefined && item.count !== null && item.count > 0 && (
                 <span className="nav-badge">{item.count}</span>
               )}
               {item.badge && (
-                <span className="nav-badge" style={{ background: '#3b82f6', color: '#fff' }}>
+                <span className="nav-badge" style={{ background: item.badge === 'ALERT' ? '#ef4444' : '#3b82f6', color: '#fff' }}>
                   {item.badge}
                 </span>
               )}

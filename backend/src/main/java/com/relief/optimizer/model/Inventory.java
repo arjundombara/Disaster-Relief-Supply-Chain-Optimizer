@@ -39,6 +39,21 @@ public class Inventory {
     @Column(nullable = false)
     private Double minimumThreshold = 10.0;
 
+    @PositiveOrZero
+    private Double physicalQuantity = 0.0;
+
+    @PositiveOrZero
+    private Double dispatchedQuantity = 0.0;
+
+    @PositiveOrZero
+    private Double deliveredQuantity = 0.0;
+
+    @PositiveOrZero
+    private Double damagedQuantity = 0.0;
+
+    @PositiveOrZero
+    private Double returnedQuantity = 0.0;
+
     @Column(nullable = false)
     private String unit;
 
@@ -117,4 +132,45 @@ public class Inventory {
     public void setUnit(String unit) {
         this.unit = unit;
     }
+
+    public Double getPhysicalQuantity() {
+        return physicalQuantity != null ? physicalQuantity : (availableQuantity + (reservedQuantity != null ? reservedQuantity : 0.0));
+    }
+
+    public void setPhysicalQuantity(Double physicalQuantity) {
+        this.physicalQuantity = physicalQuantity;
+    }
+
+    public Double getDispatchedQuantity() {
+        return dispatchedQuantity != null ? dispatchedQuantity : 0.0;
+    }
+
+    public void setDispatchedQuantity(Double dispatchedQuantity) {
+        this.dispatchedQuantity = dispatchedQuantity;
+    }
+
+    public Double getDeliveredQuantity() {
+        return deliveredQuantity != null ? deliveredQuantity : 0.0;
+    }
+
+    public void setDeliveredQuantity(Double deliveredQuantity) {
+        this.deliveredQuantity = deliveredQuantity;
+    }
+
+    public Double getDamagedQuantity() {
+        return damagedQuantity != null ? damagedQuantity : 0.0;
+    }
+
+    public void setDamagedQuantity(Double damagedQuantity) {
+        this.damagedQuantity = damagedQuantity;
+    }
+
+    public Double getReturnedQuantity() {
+        return returnedQuantity != null ? returnedQuantity : 0.0;
+    }
+
+    public void setReturnedQuantity(Double returnedQuantity) {
+        this.returnedQuantity = returnedQuantity;
+    }
 }
+

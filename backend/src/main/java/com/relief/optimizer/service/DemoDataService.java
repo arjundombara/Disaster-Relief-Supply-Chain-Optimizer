@@ -29,6 +29,8 @@ public class DemoDataService {
     private final InventoryRepository inventoryRepository;
     private final ShipmentRepository shipmentRepository;
     private final AllocationRepository allocationRepository;
+    private final com.relief.optimizer.repository.DisasterRepository disasterRepository;
+    private final com.relief.optimizer.repository.OfficialInstructionRepository instructionRepository;
 
     @Autowired
     public DemoDataService(DepotRepository depotRepository,
@@ -36,14 +38,19 @@ public class DemoDataService {
                            RouteRepository routeRepository,
                            InventoryRepository inventoryRepository,
                            ShipmentRepository shipmentRepository,
-                           AllocationRepository allocationRepository) {
+                           AllocationRepository allocationRepository,
+                           com.relief.optimizer.repository.DisasterRepository disasterRepository,
+                           com.relief.optimizer.repository.OfficialInstructionRepository instructionRepository) {
         this.depotRepository = depotRepository;
         this.dpRepository = dpRepository;
         this.routeRepository = routeRepository;
         this.inventoryRepository = inventoryRepository;
         this.shipmentRepository = shipmentRepository;
         this.allocationRepository = allocationRepository;
+        this.disasterRepository = disasterRepository;
+        this.instructionRepository = instructionRepository;
     }
+
 
     public String loadDemoData() {
         if (depotRepository.existsByCode("DEMO-A")) {
@@ -71,27 +78,53 @@ public class DemoDataService {
         addInventory(depotB, SupplyType.MEDICINE, 60.0,  6.0,  10.0, "Kits");
         addInventory(depotB, SupplyType.SHELTER,  20.0,  2.0,  3.0,  "Units");
 
+        // ===== DISASTER =====
+        com.relief.optimizer.model.Disaster disaster = new com.relief.optimizer.model.Disaster(
+                null, "Eastern Seaboard Super Cyclone Remal", "CYCLONE",
+                "Odisha & Andhra Pradesh Coastal Belt",
+                "Severe tropical storm resulting in tidal surges, widespread power grid failures, and road inundation across coastal sectors.",
+                java.time.LocalDateTime.now().minusDays(2), SeverityLevel.CRITICAL, 27800,
+                "Visakhapatnam Port, Puri Lowlands, Shillong foothills, Munnar clusters",
+                "Water purification tablets, emergency food packets, field surgical kits, emergency tarpaulins",
+                "Execute priority airlift to Visakhapatnam camps; avoid flooded R04 and damaged R07 corridors.",
+                "ACTIVE", "National Disaster Management Authority (NDMA)", "admin"
+        );
+        disaster = disasterRepository.save(disaster);
+
         // ===== DISTRIBUTION POINTS =====
         DistributionPoint dp1 = new DistributionPoint(null, "DEMO-DP1", "Coastal Flood Zone Alpha",
                 17.6868, 83.2185, "Visakhapatnam Port Area, Andhra Pradesh", "Anitha Reddy", "+91-8912345678",
                 SeverityLevel.CRITICAL, 5, 12000, "ACTIVE",
                 80.0, 200.0, 30.0, 10.0);
+        dp1.setDisasterId(disaster.getId());
         DistributionPoint dp2 = new DistributionPoint(null, "DEMO-DP2", "Cyclone Shelter Zone B",
                 20.2961, 85.8245, "Puri District, Odisha", "Mohan Patra", "+91-9437654321",
                 SeverityLevel.HIGH, 4, 8500, "ACTIVE",
                 120.0, 280.0, 40.0, 15.0);
+        dp2.setDisasterId(disaster.getId());
         DistributionPoint dp3 = new DistributionPoint(null, "DEMO-DP3", "Hill Tribe Evacuation Camp",
                 25.5788, 91.8933, "Shillong Periphery, Meghalaya", "Bah Joshua Lyngdoh", "+91-9856123456",
                 SeverityLevel.HIGH, 3, 4200, "ACTIVE",
                 60.0, 150.0, 25.0, 8.0);
+        dp3.setDisasterId(disaster.getId());
         DistributionPoint dp4 = new DistributionPoint(null, "DEMO-DP4", "Landslide Relief Point Delta",
                 9.9312, 76.2673, "Munnar Rural Cluster, Kerala", "Smt. Leela Krishnan", "+91-9745678123",
                 SeverityLevel.MODERATE, 2, 3100, "ACTIVE",
                 80.0, 180.0, 20.0, 6.0);
+        dp4.setDisasterId(disaster.getId());
         dp1 = dpRepository.save(dp1);
         dp2 = dpRepository.save(dp2);
         dp3 = dpRepository.save(dp3);
         dp4 = dpRepository.save(dp4);
+
+        // ===== INSTRUCTIONS =====
+        com.relief.optimizer.model.OfficialInstruction instruction = new com.relief.optimizer.model.OfficialInstruction(
+                null, "Mandatory Field Protocol: Proof of Delivery & Safety First",
+                "All relief dispatchers and field workers must obtain recipient signatures or village elder countersignatures for consignments exceeding 50 units. Report any blocked or flooded route immediately via the Problem Report feature.",
+                disaster.getId(), disaster.getName(), "ALL_WORKERS", null, "HIGH", "PUBLISHED", "admin", null
+        );
+        instructionRepository.save(instruction);
+
 
         // ===== ROUTES =====
         // Depot A routes

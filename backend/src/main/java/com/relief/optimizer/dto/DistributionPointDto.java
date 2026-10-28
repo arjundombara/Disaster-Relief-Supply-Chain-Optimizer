@@ -37,6 +37,8 @@ public class DistributionPointDto {
     private Integer affectedPopulation = 0;
 
     private String status = "ACTIVE";
+    private Long disasterId;
+    private String disasterName;
 
     @PositiveOrZero(message = "Food demand must be >= 0")
     private Double foodDemand = 0.0;
@@ -107,4 +109,9 @@ public class DistributionPointDto {
     public void setTotalDelivered(Double totalDelivered) { this.totalDelivered = totalDelivered; }
     public Double getSatisfactionRate() { return satisfactionRate; }
     public void setSatisfactionRate(Double satisfactionRate) { this.satisfactionRate = satisfactionRate; }
+    public Long getDisasterId() { return disasterId; }
+    public void setDisasterId(Long disasterId) { this.disasterId = disasterId; }
+    public String getDisasterName() { return disasterName; }
+    public void setDisasterName(String disasterName) { this.disasterName = disasterName; }
 }
+

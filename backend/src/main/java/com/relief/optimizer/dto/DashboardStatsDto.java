@@ -14,6 +14,14 @@ public class DashboardStatsDto {
     private int dispatchedShipments;
     private int deliveredShipments;
 
+    private int activeDisasters;
+    private int registeredWorkers;
+    private int pendingApprovals;
+    private double totalReservedInventory;
+    private double totalDispatchedInventory;
+    private double totalDeliveredInventory;
+
+
     private Map<String, Double> totalInventoryByType = new HashMap<>();
     private Map<String, Double> totalDemandByType = new HashMap<>();
     private Map<String, Double> totalDeliveredByType = new HashMap<>();
@@ -87,4 +95,18 @@ public class DashboardStatsDto {
     public void setLastComputedMaxFlow(double lastComputedMaxFlow) { this.lastComputedMaxFlow = lastComputedMaxFlow; }
     public String getLastOptimizationTime() { return lastOptimizationTime; }
     public void setLastOptimizationTime(String lastOptimizationTime) { this.lastOptimizationTime = lastOptimizationTime; }
+
+    public int getActiveDisasters() { return activeDisasters; }
+    public void setActiveDisasters(int activeDisasters) { this.activeDisasters = activeDisasters; }
+    public int getRegisteredWorkers() { return registeredWorkers; }
+    public void setRegisteredWorkers(int registeredWorkers) { this.registeredWorkers = registeredWorkers; }
+    public int getPendingApprovals() { return pendingApprovals; }
+    public void setPendingApprovals(int pendingApprovals) { this.pendingApprovals = pendingApprovals; }
+    public double getTotalReservedInventory() { return totalReservedInventory; }
+    public void setTotalReservedInventory(double totalReservedInventory) { this.totalReservedInventory = totalReservedInventory; }
+    public double getTotalDispatchedInventory() { return totalDispatchedInventory; }
+    public void setTotalDispatchedInventory(double totalDispatchedInventory) { this.totalDispatchedInventory = totalDispatchedInventory; }
+    public double getTotalDeliveredInventory() { return totalDeliveredInventory; }
+    public void setTotalDeliveredInventory(double totalDeliveredInventory) { this.totalDeliveredInventory = totalDeliveredInventory; }
 }
+

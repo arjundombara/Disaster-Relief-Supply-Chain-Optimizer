@@ -24,6 +24,9 @@ public class DashboardService {
     private final AllocationRepository allocationRepository;
     private final DepotService depotService;
     private final AllocationService allocationService;
+    private final DisasterRepository disasterRepository;
+    private final UserRepository userRepository;
+    private final DeliveryReportRepository deliveryReportRepository;
 
     @Autowired
     public DashboardService(DepotRepository depotRepository,
@@ -33,7 +36,10 @@ public class DashboardService {
                             InventoryRepository inventoryRepository,
                             AllocationRepository allocationRepository,
                             DepotService depotService,
-                            AllocationService allocationService) {
+                            AllocationService allocationService,
+                            DisasterRepository disasterRepository,
+                            UserRepository userRepository,
+                            DeliveryReportRepository deliveryReportRepository) {
         this.depotRepository = depotRepository;
         this.dpRepository = dpRepository;
         this.routeRepository = routeRepository;
@@ -42,7 +48,11 @@ public class DashboardService {
         this.allocationRepository = allocationRepository;
         this.depotService = depotService;
         this.allocationService = allocationService;
+        this.disasterRepository = disasterRepository;
+        this.userRepository = userRepository;
+        this.deliveryReportRepository = deliveryReportRepository;
     }
+
 
     public DashboardStatsDto getDashboardStats() {
         DashboardStatsDto stats = new DashboardStatsDto();
@@ -61,7 +71,19 @@ public class DashboardService {
         stats.setDispatchedShipments((int) shipments.stream().filter(s -> s.getStatus() == ShipmentStatus.DISPATCHED).count());
         stats.setDeliveredShipments((int) shipments.stream().filter(s -> s.getStatus() == ShipmentStatus.DELIVERED).count());
 
+        stats.setActiveDisasters((int) disasterRepository.findByStatusNot("CLOSED").size());
+        stats.setRegisteredWorkers((int) userRepository.findByRoleAndActiveTrue(Role.WORKER).size());
+        stats.setPendingApprovals((int) deliveryReportRepository.findByStatusOrderBySubmittedAtDesc(DeliveryReport.ReportStatus.PENDING_APPROVAL).size());
+
+        double totalReserved = inventoryRepository.findAll().stream()
+                .mapToDouble(i -> i.getReservedQuantity() != null ? i.getReservedQuantity() : 0.0).sum();
+        double totalDispatched = inventoryRepository.findAll().stream()
+                .mapToDouble(i -> i.getDispatchedQuantity() != null ? i.getDispatchedQuantity() : 0.0).sum();
+        stats.setTotalReservedInventory(totalReserved);
+        stats.setTotalDispatchedInventory(totalDispatched);
+
         // Aggregate inventory and demand by supply type
+
         Map<String, Double> inventoryByType = new LinkedHashMap<>();
         Map<String, Double> demandByType = new LinkedHashMap<>();
         Map<String, Double> deliveredByType = new LinkedHashMap<>();

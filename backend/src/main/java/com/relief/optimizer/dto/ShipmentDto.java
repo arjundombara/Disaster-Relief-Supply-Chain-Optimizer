@@ -31,6 +31,15 @@ public class ShipmentDto {
     private String recipientName;
     private String deliveryNotes;
 
+    // Worker Assignment fields
+    private Long assignedWorkerId;
+    private String assignedWorkerName;
+    private String taskPriority;
+    private LocalDateTime deadline;
+    private String taskInstructions;
+    private Boolean workerAcknowledged;
+    private LocalDateTime acknowledgedAt;
+
     public ShipmentDto() {}
 
     // Getters & Setters
@@ -82,4 +91,20 @@ public class ShipmentDto {
     public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
     public String getDeliveryNotes() { return deliveryNotes; }
     public void setDeliveryNotes(String deliveryNotes) { this.deliveryNotes = deliveryNotes; }
+
+    public Long getAssignedWorkerId() { return assignedWorkerId; }
+    public void setAssignedWorkerId(Long assignedWorkerId) { this.assignedWorkerId = assignedWorkerId; }
+    public String getAssignedWorkerName() { return assignedWorkerName; }
+    public void setAssignedWorkerName(String assignedWorkerName) { this.assignedWorkerName = assignedWorkerName; }
+    public String getTaskPriority() { return taskPriority; }
+    public void setTaskPriority(String taskPriority) { this.taskPriority = taskPriority; }
+    public LocalDateTime getDeadline() { return deadline; }
+    public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
+    public String getTaskInstructions() { return taskInstructions; }
+    public void setTaskInstructions(String taskInstructions) { this.taskInstructions = taskInstructions; }
+    public Boolean getWorkerAcknowledged() { return workerAcknowledged; }
+    public void setWorkerAcknowledged(Boolean workerAcknowledged) { this.workerAcknowledged = workerAcknowledged; }
+    public LocalDateTime getAcknowledgedAt() { return acknowledgedAt; }
+    public void setAcknowledgedAt(LocalDateTime acknowledgedAt) { this.acknowledgedAt = acknowledgedAt; }
 }
+

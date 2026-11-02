@@ -25,14 +25,17 @@ public class Shipment {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "source_depot_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"inventories", "hibernateLazyInitializer", "handler"})
     private Depot sourceDepot;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "destination_point_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private DistributionPoint destinationPoint;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "route_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"sourceDepot", "destinationPoint", "hibernateLazyInitializer", "handler"})
     private Route route;
 
     @Enumerated(EnumType.STRING)
@@ -60,6 +63,16 @@ public class Shipment {
     private String vehicleType = "Heavy Relief Truck";
     private String recipientName;
     private String deliveryNotes;
+
+    // Worker Assignment attributes
+    private Long assignedWorkerId;
+    private String assignedWorkerName;
+    private String taskPriority = "NORMAL"; // NORMAL, HIGH, URGENT
+    private LocalDateTime deadline;
+    private String taskInstructions;
+    private Boolean workerAcknowledged = false;
+    private LocalDateTime acknowledgedAt;
+
 
     public Shipment() {}
 
@@ -138,4 +151,20 @@ public class Shipment {
     public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
     public String getDeliveryNotes() { return deliveryNotes; }
     public void setDeliveryNotes(String deliveryNotes) { this.deliveryNotes = deliveryNotes; }
+
+    public Long getAssignedWorkerId() { return assignedWorkerId; }
+    public void setAssignedWorkerId(Long assignedWorkerId) { this.assignedWorkerId = assignedWorkerId; }
+    public String getAssignedWorkerName() { return assignedWorkerName; }
+    public void setAssignedWorkerName(String assignedWorkerName) { this.assignedWorkerName = assignedWorkerName; }
+    public String getTaskPriority() { return taskPriority; }
+    public void setTaskPriority(String taskPriority) { this.taskPriority = taskPriority; }
+    public LocalDateTime getDeadline() { return deadline; }
+    public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
+    public String getTaskInstructions() { return taskInstructions; }
+    public void setTaskInstructions(String taskInstructions) { this.taskInstructions = taskInstructions; }
+    public Boolean getWorkerAcknowledged() { return workerAcknowledged; }
+    public void setWorkerAcknowledged(Boolean workerAcknowledged) { this.workerAcknowledged = workerAcknowledged; }
+    public LocalDateTime getAcknowledgedAt() { return acknowledgedAt; }
+    public void setAcknowledgedAt(LocalDateTime acknowledgedAt) { this.acknowledgedAt = acknowledgedAt; }
 }
+

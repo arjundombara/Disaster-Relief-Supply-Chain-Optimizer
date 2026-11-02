@@ -49,6 +49,8 @@ public class DistributionPoint {
     @Column(nullable = false)
     private String status = "ACTIVE"; // ACTIVE, RELIEVED, INACCESSIBLE
 
+    private Long disasterId;
+
     // Demands per supply type
     @PositiveOrZero(message = "Food demand must be >= 0")
     private Double foodDemand = 0.0;
@@ -193,4 +195,7 @@ public class DistributionPoint {
     public void setMedicineDelivered(Double medicineDelivered) { this.medicineDelivered = medicineDelivered; }
     public Double getShelterDelivered() { return shelterDelivered; }
     public void setShelterDelivered(Double shelterDelivered) { this.shelterDelivered = shelterDelivered; }
+    public Long getDisasterId() { return disasterId; }
+    public void setDisasterId(Long disasterId) { this.disasterId = disasterId; }
 }
+

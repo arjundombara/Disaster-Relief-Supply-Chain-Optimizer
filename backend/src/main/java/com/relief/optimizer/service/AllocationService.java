@@ -26,6 +26,7 @@ public class AllocationService {
     private final RouteRepository routeRepository;
     private final InventoryRepository inventoryRepository;
     private final MaxFlowService maxFlowService;
+    private final InventoryService inventoryService;
 
     @Autowired
     public AllocationService(AllocationRepository allocationRepository,
@@ -34,7 +35,8 @@ public class AllocationService {
                              DistributionPointRepository dpRepository,
                              RouteRepository routeRepository,
                              InventoryRepository inventoryRepository,
-                             MaxFlowService maxFlowService) {
+                             MaxFlowService maxFlowService,
+                             InventoryService inventoryService) {
         this.allocationRepository = allocationRepository;
         this.shipmentRepository = shipmentRepository;
         this.depotRepository = depotRepository;
@@ -42,7 +44,9 @@ public class AllocationService {
         this.routeRepository = routeRepository;
         this.inventoryRepository = inventoryRepository;
         this.maxFlowService = maxFlowService;
+        this.inventoryService = inventoryService;
     }
+
 
     /**
      * Runs max-flow and generates an Allocation with Shipments for the given supply type and policy.
@@ -236,6 +240,80 @@ public class AllocationService {
         dto.setVehicleType(s.getVehicleType());
         dto.setRecipientName(s.getRecipientName());
         dto.setDeliveryNotes(s.getDeliveryNotes());
+        dto.setAssignedWorkerId(s.getAssignedWorkerId());
+        dto.setAssignedWorkerName(s.getAssignedWorkerName());
+        dto.setTaskPriority(s.getTaskPriority());
+        dto.setDeadline(s.getDeadline());
+        dto.setTaskInstructions(s.getTaskInstructions());
+        dto.setWorkerAcknowledged(s.getWorkerAcknowledged());
+        dto.setAcknowledgedAt(s.getAcknowledgedAt());
         return dto;
     }
+
+    public ShipmentDto assignWorkerToTask(Long shipmentId, Long workerId, String workerName,
+                                         String priority, LocalDateTime deadline, String instructions) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment task not found: " + shipmentId));
+
+        shipment.setAssignedWorkerId(workerId);
+        shipment.setAssignedWorkerName(workerName);
+        if (priority != null) shipment.setTaskPriority(priority);
+        if (deadline != null) shipment.setDeadline(deadline);
+        if (instructions != null) shipment.setTaskInstructions(instructions);
+        return toShipmentDto(shipmentRepository.save(shipment));
+    }
+
+    public ShipmentDto acknowledgeTask(Long shipmentId, Long workerId) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment task not found: " + shipmentId));
+
+        if (shipment.getAssignedWorkerId() != null && !shipment.getAssignedWorkerId().equals(workerId)) {
+            throw new ValidationException("Worker is not authorized to acknowledge this assignment.");
+        }
+
+        shipment.setWorkerAcknowledged(true);
+        shipment.setAcknowledgedAt(LocalDateTime.now());
+        return toShipmentDto(shipmentRepository.save(shipment));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShipmentDto> getShipmentsForWorker(Long workerId) {
+        return shipmentRepository.findByAssignedWorkerIdOrderByCreatedAtDesc(workerId).stream()
+                .map(this::toShipmentDto)
+                .collect(Collectors.toList());
+    }
+
+    public Allocation approvePlan(Long allocationId, String adminUsername) {
+        Allocation allocation = allocationRepository.findById(allocationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Distribution plan not found: " + allocationId));
+
+        if ("APPROVED".equalsIgnoreCase(allocation.getPlanStatus())) {
+            throw new ValidationException("This distribution plan has already been approved.");
+        }
+
+        // Reserve stock for all generated shipments in this allocation
+        for (Shipment shipment : allocation.getShipments()) {
+            if (shipment.getAllocatedQuantity() > 0 && shipment.getSourceDepot() != null) {
+                inventoryService.reserveStock(
+                        shipment.getSourceDepot().getId(),
+                        shipment.getSupplyType(),
+                        shipment.getAllocatedQuantity(),
+                        shipment.getShipmentCode(),
+                        adminUsername
+                );
+            }
+        }
+
+        allocation.setPlanStatus("APPROVED");
+        allocation.setApprovedBy(adminUsername);
+        allocation.setApprovedAt(LocalDateTime.now());
+        return allocationRepository.save(allocation);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Allocation> getAllAllocations() {
+        return allocationRepository.findAll();
+    }
 }
+
+

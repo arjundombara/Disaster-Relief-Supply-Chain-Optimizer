@@ -14,4 +14,9 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
     List<Shipment> findByStatus(ShipmentStatus status);
     List<Shipment> findByAllocationId(Long allocationId);
     List<Shipment> findAllByOrderByCreatedAtDesc();
+    List<Shipment> findBySourceDepotId(Long sourceDepotId);
+    List<Shipment> findByDestinationPointId(Long destinationPointId);
+    List<Shipment> findByAssignedWorkerId(Long assignedWorkerId);
+    List<Shipment> findByAssignedWorkerIdOrderByCreatedAtDesc(Long assignedWorkerId);
 }
+

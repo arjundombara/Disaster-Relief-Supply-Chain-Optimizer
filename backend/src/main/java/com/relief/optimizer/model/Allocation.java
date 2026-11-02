@@ -31,9 +31,18 @@ public class Allocation {
     private Double unmetDemand = 0.0;
     private Double satisfactionPercentage = 0.0;
 
+    @Column(nullable = false)
+    private String planStatus = "PROPOSED"; // PROPOSED, APPROVED, REVISED, CANCELLED
+
+    private String approvedBy;
+    private LocalDateTime approvedAt;
+    private Long disasterId;
+    private String disasterName;
+
     @OneToMany(mappedBy = "allocation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<Shipment> shipments = new ArrayList<>();
+
 
     public Allocation() {}
 
@@ -74,6 +83,17 @@ public class Allocation {
     public void setUnmetDemand(Double unmetDemand) { this.unmetDemand = unmetDemand; }
     public Double getSatisfactionPercentage() { return satisfactionPercentage; }
     public void setSatisfactionPercentage(Double satisfactionPercentage) { this.satisfactionPercentage = satisfactionPercentage; }
+    public String getPlanStatus() { return planStatus; }
+    public void setPlanStatus(String planStatus) { this.planStatus = planStatus; }
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+    public Long getDisasterId() { return disasterId; }
+    public void setDisasterId(Long disasterId) { this.disasterId = disasterId; }
+    public String getDisasterName() { return disasterName; }
+    public void setDisasterName(String disasterName) { this.disasterName = disasterName; }
     public List<Shipment> getShipments() { return shipments; }
     public void setShipments(List<Shipment> shipments) { this.shipments = shipments; }
 }
+

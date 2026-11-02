@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import LoginModal from './components/LoginModal';
 import DashboardView from './views/DashboardView';
 import DepotView from './views/DepotView';
 import DistributionPointView from './views/DistributionPointView';
@@ -9,11 +10,19 @@ import OptimizationView from './views/OptimizationView';
 import DeliveryView from './views/DeliveryView';
 import ReportsView from './views/ReportsView';
 import ScenariosView from './views/ScenariosView';
-import { api } from './services/api';
+import DisasterView from './views/DisasterView';
+import DeliveryApprovalView from './views/DeliveryApprovalView';
+import InventoryLedgerView from './views/InventoryLedgerView';
+import WorkerDashboardView from './views/WorkerDashboardView';
+import { api, authStorage } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [userRole, setUserRole] = useState('admin'); // 'admin' | 'field'
+  const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(() => {
+    const user = authStorage.getUser();
+    return user?.role === 'WORKER' ? 'worker-console' : 'dashboard';
+  });
 
   // Global entity states
   const [stats, setStats] = useState(null);
@@ -21,6 +30,8 @@ export default function App() {
   const [distributionPoints, setDistributionPoints] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [shipments, setShipments] = useState([]);
+  const [disasters, setDisasters] = useState([]);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
   // Optimization computation state
   const [lastFlowResult, setLastFlowResult] = useState(null);
@@ -32,12 +43,14 @@ export default function App() {
   // Load all entity data from backend
   const refreshAllData = async () => {
     try {
-      const [statsData, depotsData, dpData, routesData, shipmentsData] = await Promise.all([
+      const [statsData, depotsData, dpData, routesData, shipmentsData, disastersData, reportsData] = await Promise.all([
         api.getDashboardStats().catch(() => null),
         api.getDepots().catch(() => []),
         api.getDistributionPoints().catch(() => []),
         api.getRoutes().catch(() => []),
-        api.getShipments().catch(() => [])
+        api.getShipments().catch(() => []),
+        api.getDisasters().catch(() => []),
+        api.getDeliveryReports('PENDING_APPROVAL').catch(() => [])
       ]);
 
       if (statsData) setStats(statsData);
@@ -45,6 +58,8 @@ export default function App() {
       if (dpData) setDistributionPoints(dpData);
       if (routesData) setRoutes(routesData);
       if (shipmentsData) setShipments(shipmentsData);
+      if (disastersData) setDisasters(disastersData);
+      setPendingApprovalsCount((reportsData || []).length);
     } catch (err) {
       console.error('Failed to load initial data:', err);
     }
@@ -52,6 +67,26 @@ export default function App() {
 
   useEffect(() => {
     refreshAllData();
+
+    // Verify token validity on load
+    if (authStorage.getToken()) {
+      api.getMe().then(user => {
+        setCurrentUser(user);
+        authStorage.setUser(user);
+      }).catch(() => {
+        authStorage.clear();
+        setCurrentUser(null);
+      });
+    }
+
+    const handleUnauthorized = () => {
+      setCurrentUser(null);
+      setIsLoginOpen(true);
+      showAlert('Session expired or unauthorized. Please sign in.', 'warning');
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
   const showAlert = (message, type = 'info') => {
@@ -59,6 +94,24 @@ export default function App() {
     setTimeout(() => {
       setAlertBanner(null);
     }, 6000);
+  };
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    showAlert(`Welcome, ${user.fullName || user.username}! Connected to Command Center.`, 'success');
+    if (user.role === 'WORKER') {
+      setActiveTab('worker-console');
+    } else {
+      setActiveTab('dashboard');
+    }
+    refreshAllData();
+  };
+
+  const handleLogout = () => {
+    authStorage.clear();
+    setCurrentUser(null);
+    showAlert('Signed out of Relief Command.', 'info');
+    setActiveTab('dashboard');
   };
 
   // Demo actions
@@ -119,13 +172,13 @@ export default function App() {
   // Distribution Point handlers
   const handleCreateDP = async (data) => {
     await api.createDistributionPoint(data);
-    showAlert(`Disaster location ${data.code} registered.`, 'success');
+    showAlert(`Affected Location ${data.name} registered.`, 'success');
     await refreshAllData();
   };
 
   const handleUpdateDP = async (id, data) => {
     await api.updateDistributionPoint(id, data);
-    showAlert(`Location updated successfully.`, 'success');
+    showAlert(`Affected Location updated.`, 'success');
     await refreshAllData();
   };
 
@@ -181,29 +234,36 @@ export default function App() {
     await refreshAllData();
   };
 
+  const userRole = currentUser?.role || 'ADMIN';
+
   return (
     <div className="app-container">
       {/* Fixed Sidebar */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        userRole={userRole}
         counts={{
           depots: depots.length,
           locations: distributionPoints.length,
           routes: routes.length,
-          shipments: shipments.length
+          shipments: shipments.length,
+          disasters: disasters.length,
+          pendingApprovals: pendingApprovalsCount
         }}
       />
 
       {/* Main Wrapper */}
       <div className="main-wrapper">
         <Navbar
-          userRole={userRole}
-          setUserRole={setUserRole}
+          currentUser={currentUser}
+          onOpenLogin={() => setIsLoginOpen(true)}
+          onLogout={handleLogout}
           onLoadDemo={handleLoadDemo}
           onResetDemo={handleResetDemo}
           loadingAction={loadingAction}
           stats={stats}
+          onNotificationSelect={() => setActiveTab('disasters')}
         />
 
         <main className="content-body">
@@ -223,6 +283,10 @@ export default function App() {
               onNavigateToOptimization={() => setActiveTab('optimization')}
               onNavigateToDeliveries={() => setActiveTab('deliveries')}
             />
+          )}
+
+          {activeTab === 'disasters' && (
+            <DisasterView showAlert={showAlert} />
           )}
 
           {activeTab === 'depots' && (
@@ -267,6 +331,9 @@ export default function App() {
               depots={depots}
               distributionPoints={distributionPoints}
               routes={routes}
+              onRefreshData={refreshAllData}
+              showAlert={showAlert}
+              currentUser={currentUser}
             />
           )}
 
@@ -276,6 +343,18 @@ export default function App() {
               onUpdateShipmentStatus={handleUpdateShipmentStatus}
               userRole={userRole}
             />
+          )}
+
+          {activeTab === 'approvals' && (
+            <DeliveryApprovalView showAlert={showAlert} />
+          )}
+
+          {activeTab === 'ledger' && (
+            <InventoryLedgerView depots={depots} showAlert={showAlert} />
+          )}
+
+          {activeTab === 'worker-console' && (
+            <WorkerDashboardView currentUser={currentUser} showAlert={showAlert} />
           )}
 
           {activeTab === 'reports' && (
@@ -294,6 +373,13 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Login / Registration Modal */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }

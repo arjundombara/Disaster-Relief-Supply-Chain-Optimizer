@@ -22,11 +22,21 @@ public class DepotService {
 
     private final DepotRepository depotRepository;
     private final InventoryRepository inventoryRepository;
+    private final com.relief.optimizer.repository.RouteRepository routeRepository;
+    private final com.relief.optimizer.repository.ShipmentRepository shipmentRepository;
+    private final InventoryService inventoryService;
 
     @Autowired
-    public DepotService(DepotRepository depotRepository, InventoryRepository inventoryRepository) {
+    public DepotService(DepotRepository depotRepository,
+                        InventoryRepository inventoryRepository,
+                        com.relief.optimizer.repository.RouteRepository routeRepository,
+                        com.relief.optimizer.repository.ShipmentRepository shipmentRepository,
+                        InventoryService inventoryService) {
         this.depotRepository = depotRepository;
         this.inventoryRepository = inventoryRepository;
+        this.routeRepository = routeRepository;
+        this.shipmentRepository = shipmentRepository;
+        this.inventoryService = inventoryService;
     }
 
     public List<DepotDto> getAllDepots() {
@@ -79,18 +89,9 @@ public class DepotService {
         // Update inventories if provided
         if (dto.getInventories() != null) {
             for (DepotDto.InventoryItemDto invDto : dto.getInventories()) {
-                inventoryRepository.findByDepotIdAndSupplyType(id, invDto.getSupplyType())
-                        .ifPresent(inv -> {
-                            if (invDto.getAvailableQuantity() != null) {
-                                if (invDto.getAvailableQuantity() < 0) {
-                                    throw new ValidationException("Available quantity for " + invDto.getSupplyType() + " cannot be negative");
-                                }
-                                inv.setAvailableQuantity(invDto.getAvailableQuantity());
-                            }
-                            if (invDto.getReservedQuantity() != null) inv.setReservedQuantity(invDto.getReservedQuantity());
-                            if (invDto.getMinimumThreshold() != null) inv.setMinimumThreshold(invDto.getMinimumThreshold());
-                            inventoryRepository.save(inv);
-                        });
+                if (invDto.getAvailableQuantity() != null) {
+                    inventoryService.adjustStock(id, invDto.getSupplyType(), invDto.getAvailableQuantity(), "Depot update inventory", "admin");
+                }
             }
         }
         return toDto(depotRepository.save(existing));
@@ -99,23 +100,27 @@ public class DepotService {
     public void deleteDepot(Long id) {
         Depot depot = depotRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Depot not found with id: " + id));
+
+        // Check if historical routes or shipments exist
+        boolean hasRoutes = !routeRepository.findBySourceDepotId(id).isEmpty();
+        boolean hasShipments = !shipmentRepository.findBySourceDepotId(id).isEmpty();
+
+        if (hasRoutes || hasShipments) {
+            // Soft delete / deactivate instead of hard delete to preserve historical integrity
+            depot.setStatus("INACTIVE");
+            depotRepository.save(depot);
+            return;
+        }
+
         depotRepository.delete(depot);
     }
 
     public DepotDto updateInventory(Long depotId, SupplyType supplyType, Double quantity) {
         if (quantity < 0) throw new ValidationException("Inventory quantity cannot be negative");
-        Depot depot = depotRepository.findById(depotId)
-                .orElseThrow(() -> new ResourceNotFoundException("Depot not found with id: " + depotId));
-        Inventory inv = inventoryRepository.findByDepotIdAndSupplyType(depotId, supplyType)
-                .orElseGet(() -> {
-                    Inventory newInv = new Inventory(null, depot, supplyType, 0.0, 0.0, 10.0, supplyType.getDefaultUnit());
-                    depot.addInventory(newInv);
-                    return newInv;
-                });
-        inv.setAvailableQuantity(quantity);
-        inventoryRepository.save(inv);
+        inventoryService.adjustStock(depotId, supplyType, quantity, "Direct inventory update", "admin");
         return toDto(depotRepository.findById(depotId).orElseThrow());
     }
+
 
     // ---- Mapping ----
 

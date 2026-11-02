@@ -73,13 +73,17 @@ public class MaxFlowService {
             depotIndexMap.put(d.getId(), nodeIdx);
             G.setVertexName(nodeIdx, d.getCode());
 
-            // Edge from super-source to depot with capacity = available inventory
+            // Edge from super-source to depot with capacity = available inventory (0 if depot is inactive)
             Optional<Inventory> inv = inventoryRepository.findByDepotIdAndSupplyType(d.getId(), supplyType);
             double supply = inv.map(Inventory::getAvailableQuantity).orElse(0.0);
+            if (!"ACTIVE".equalsIgnoreCase(d.getStatus())) {
+                supply = 0.0; // Inactive depots cannot supply goods
+            }
             if (supply < 0) supply = 0.0;
             G.addEdge(superSource, nodeIdx, supply,
                     "Supply(" + d.getCode() + ")", "SUPER_SOURCE", null);
         }
+
 
         for (int j = 0; j < numDPs; j++) {
             DistributionPoint dp = dps.get(j);

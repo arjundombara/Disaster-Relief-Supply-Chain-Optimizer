@@ -42,44 +42,67 @@ async function request(endpoint, options = {}) {
     headers,
   };
 
+  let response;
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    if (!response.ok) {
-      let errMessage = `HTTP ${response.status} ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errMessage = errorData.message || errorData.error || errMessage;
-        if (errorData.details && errorData.details.length > 0) {
-          errMessage += ` (${errorData.details.join(', ')})`;
-        }
-      } catch (e) {
-        // Fallback to text
-      }
-      if (response.status === 401 && !endpoint.includes('/auth/login')) {
-        authStorage.clear();
-        window.dispatchEvent(new Event('auth:unauthorized'));
-      }
-      throw new Error(errMessage);
-    }
-    if (response.status === 204) return null;
-    return await response.json();
-  } catch (error) {
-    console.error(`API Error on ${endpoint}:`, error);
-    throw error;
+    response = await fetch(`${BASE_URL}${endpoint}`, config);
+  } catch (networkError) {
+    console.error(`Network error on ${endpoint}:`, networkError);
+    throw new Error(
+      'Unable to connect to the backend server. Please verify that the Spring Boot service is running on port 8080.'
+    );
   }
+
+  if (!response.ok) {
+    if (response.status === 502 || response.status === 503 || response.status === 504) {
+      throw new Error(
+        `Backend service unavailable (HTTP ${response.status} ${response.statusText}). Please ensure the Spring Boot server is running on port 8080.`
+      );
+    }
+
+    let errMessage = `HTTP ${response.status} ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      errMessage = errorData.message || errorData.error || errMessage;
+      if (errorData.details && errorData.details.length > 0) {
+        const uniqueDetails = errorData.details.filter(d => d !== errorData.message && d !== errMessage);
+        if (uniqueDetails.length > 0) {
+          errMessage += ` (${uniqueDetails.join(', ')})`;
+        }
+      }
+    } catch (e) {
+      // Fallback to text
+    }
+
+    if (response.status === 401 && !endpoint.includes('/auth/login')) {
+      authStorage.clear();
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
+
+    throw new Error(errMessage);
+  }
+
+  if (response.status === 204) return null;
+  return await response.json();
 }
 
 export const api = {
   // Authentication & RBAC
   login: (credentials) => request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
   setupAdmin: (data) => request('/auth/setup-admin', { method: 'POST', body: JSON.stringify(data) }),
-  registerWorker: (data) => request('/auth/register-worker', { method: 'POST', body: JSON.stringify(data) }),
+  registerWorkerSelf: (data) => request('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  registerWorker: (data) => request('/users/workers', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request('/auth/me'),
   hasAdmin: () => request('/auth/has-admin'),
 
-  // Workers & User Management
+  // Workers & User Management (Authorized Admin Operations)
   getWorkers: () => request('/users/workers'),
-  toggleWorkerStatus: (id, active) => request(`/users/workers/${id}/status?active=${active}`, { method: 'PATCH' }),
+  getUserRequests: () => request('/users/requests'),
+  getWorkerById: (id) => request(`/users/${id}`),
+  approveWorker: (id) => request(`/users/${id}/approve`, { method: 'POST' }),
+  rejectWorker: (id) => request(`/users/${id}/reject`, { method: 'POST' }),
+  updateWorkerApproval: (id, status) => request(`/users/${id}/approval`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  createWorker: (data) => request('/users/workers', { method: 'POST', body: JSON.stringify(data) }),
+  toggleWorkerStatus: (id, active) => request(`/users/${id}/status?active=${active}`, { method: 'PATCH' }),
 
   // Dashboard & Demo Scenarios
   getDashboardStats: () => request('/dashboard/stats'),

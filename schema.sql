@@ -117,6 +117,22 @@ CREATE TABLE IF NOT EXISTS shipments (
     CONSTRAINT fk_shipment_route FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE RESTRICT
 );
 
+-- 7. System Users & Relief Field Workers
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'APPROVED',
+    assigned_depot_id BIGINT,
+    assigned_location_id BIGINT,
+    phone VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =====================================================================
 -- Sample Seed Data (Equivalent to demo scenario)
 -- =====================================================================

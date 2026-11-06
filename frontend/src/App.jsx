@@ -282,6 +282,9 @@ export default function App() {
               recentShipments={shipments}
               onNavigateToOptimization={() => setActiveTab('optimization')}
               onNavigateToDeliveries={() => setActiveTab('deliveries')}
+              currentUser={currentUser}
+              showAlert={showAlert}
+              onOpenLogin={() => setIsLoginOpen(true)}
             />
           )}
 

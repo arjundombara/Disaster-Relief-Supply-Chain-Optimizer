@@ -87,7 +87,8 @@ public class SecurityConfig {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
             .headers().frameOptions().sameOrigin().and() // For H2 console
             .authorizeRequests()
-                // Public authentication and status endpoints
+                // Public authentication and status endpoints (worker registration restricted to ADMIN)
+                .antMatchers(HttpMethod.POST, "/api/auth/register-worker").hasRole("ADMIN")
                 .antMatchers("/api/auth/**").permitAll()
                 .antMatchers("/api/health").permitAll()
                 // Documentation & H2 console

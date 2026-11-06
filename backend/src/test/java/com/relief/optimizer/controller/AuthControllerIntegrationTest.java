@@ -90,6 +90,71 @@ public class AuthControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("AUTH-04B: Unauthenticated user cannot register worker (Unauthorized)")
+    public void testUnauthenticatedCannotRegisterWorker() throws Exception {
+        CreateWorkerRequestDto request = new CreateWorkerRequestDto();
+        request.setUsername("anon_worker_" + System.currentTimeMillis());
+        request.setEmail("anon@relief.org");
+        request.setFullName("Anonymous Worker");
+        request.setPassword("Secret123!");
+
+        mockMvc.perform(post("/api/auth/register-worker")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("AUTH-04C: Field Worker cannot register another worker (Forbidden)")
+    @WithMockUser(username = "worker1", roles = {"WORKER"})
+    public void testWorkerCannotRegisterWorker() throws Exception {
+        CreateWorkerRequestDto request = new CreateWorkerRequestDto();
+        request.setUsername("sub_worker_" + System.currentTimeMillis());
+        request.setEmail("sub@relief.org");
+        request.setFullName("Sub Worker");
+        request.setPassword("Secret123!");
+
+        mockMvc.perform(post("/api/auth/register-worker")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("AUTH-04D: Admin can create worker via /api/users/workers")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    public void testAdminCreateWorkerViaUsersEndpoint() throws Exception {
+        String uniqueUser = "admin_created_worker_" + System.currentTimeMillis();
+        CreateWorkerRequestDto request = new CreateWorkerRequestDto();
+        request.setUsername(uniqueUser);
+        request.setEmail(uniqueUser + "@relief.org");
+        request.setFullName("Admin Created Worker");
+        request.setPassword("Secret123!");
+
+        mockMvc.perform(post("/api/users/workers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username", is(uniqueUser)))
+                .andExpect(jsonPath("$.role", is("WORKER")));
+    }
+
+    @Test
+    @DisplayName("AUTH-04E: Unauthenticated user cannot create worker via /api/users/workers")
+    public void testUnauthenticatedCannotCreateWorkerViaUsersEndpoint() throws Exception {
+        CreateWorkerRequestDto request = new CreateWorkerRequestDto();
+        request.setUsername("anon_users_" + System.currentTimeMillis());
+        request.setEmail("anon_users@relief.org");
+        request.setFullName("Anon User");
+        request.setPassword("Secret123!");
+
+        mockMvc.perform(post("/api/users/workers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("AUTH-05: Authenticated user can fetch own profile via /me")
     public void testGetMeWithBearerToken() throws Exception {
         // First log in to obtain JWT

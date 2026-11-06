@@ -106,6 +106,28 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(err, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(AccountPendingException.class)
+    public ResponseEntity<ErrorResponse> handleAccountPending(AccountPendingException ex) {
+        ErrorResponse err = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Account Pending Approval",
+                ex.getMessage(),
+                Collections.emptyList()
+        );
+        return new ResponseEntity<>(err, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(AccountRejectedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountRejected(AccountRejectedException ex) {
+        ErrorResponse err = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Account Rejected",
+                ex.getMessage(),
+                Collections.emptyList()
+        );
+        return new ResponseEntity<>(err, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
         ErrorResponse err = new ErrorResponse(

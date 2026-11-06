@@ -9,11 +9,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -51,8 +53,26 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(admin);
     }
 
+    @PostMapping({"/register", "/worker-register"})
+    @Operation(summary = "Worker self-registration (Public)")
+    public ResponseEntity<Map<String, Object>> selfRegisterWorker(@Valid @RequestBody WorkerRegisterRequestDto request) {
+        UserDto worker = userService.selfRegisterWorker(request);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("message", "Registration successful! Your account is waiting for Admin approval.");
+        response.put("id", worker.getId());
+        response.put("username", worker.getUsername());
+        response.put("email", worker.getEmail());
+        response.put("fullName", worker.getFullName());
+        response.put("role", worker.getRole());
+        response.put("approvalStatus", worker.getApprovalStatus());
+        response.put("active", worker.getActive());
+        response.put("createdAt", worker.getCreatedAt());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @PostMapping("/register-worker")
-    @Operation(summary = "Self-register a new field worker account (only creates WORKER role)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Register a new field worker account (Admin only)")
     public ResponseEntity<UserDto> registerWorker(@Valid @RequestBody CreateWorkerRequestDto request) {
         UserDto worker = userService.createWorker(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(worker);

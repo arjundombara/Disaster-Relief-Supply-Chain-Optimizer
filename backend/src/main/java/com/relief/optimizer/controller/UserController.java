@@ -67,4 +67,38 @@ public class UserController {
         Long locationId = payload.get("assignedLocationId") != null ? Long.valueOf(payload.get("assignedLocationId").toString()) : null;
         return ResponseEntity.ok(userService.updateWorkerAssignment(id, depotId, locationId));
     }
+
+    @GetMapping({"", "/requests"})
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all users / worker requests (Admin only)")
+    public ResponseEntity<List<UserDto>> getAllUserRequests() {
+        return ResponseEntity.ok(userService.getAllWorkers());
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Approve a worker registration request (Admin only)")
+    public ResponseEntity<UserDto> approveWorker(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.approveWorker(id));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Reject a worker registration request (Admin only)")
+    public ResponseEntity<UserDto> rejectWorker(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.rejectWorker(id));
+    }
+
+    @PatchMapping("/{id}/approval")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update worker approval status (Admin only)")
+    public ResponseEntity<UserDto> updateApprovalStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String statusStr = payload.get("status");
+        if (statusStr == null || statusStr.trim().isEmpty()) {
+            throw new com.relief.optimizer.exception.ValidationException("Status parameter is required");
+        }
+        com.relief.optimizer.model.WorkerApprovalStatus status =
+                com.relief.optimizer.model.WorkerApprovalStatus.valueOf(statusStr.trim().toUpperCase());
+        return ResponseEntity.ok(userService.updateWorkerApprovalStatus(id, status));
+    }
 }

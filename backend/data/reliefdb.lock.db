@@ -1,6 +1,6 @@
 #FileLock
-#Sun Nov 01 15:13:27 IST 2026
-server=192.168.1.11\:62942
+#Fri Nov 06 23:45:48 IST 2026
+server=172.19.174.111\:52229
 hostName=DESKTOP-I48OCEC
 method=file
-id=1a1967e0bc258fd7817dcb24513d89fe318b2bc60a5
+id=1a1b212e0a505ca39eab964e42dd06e531b8264baa6

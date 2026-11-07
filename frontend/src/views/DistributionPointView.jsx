@@ -158,7 +158,7 @@ export default function DistributionPointView({
           <p>Register affected civilian zones, triage emergency priorities, and configure food, water, and medicine demands</p>
         </div>
 
-        {userRole === 'admin' && (
+        {String(userRole).toUpperCase() === 'ADMIN'&& (
           <button className="btn btn-primary" onClick={openAddModal}>
             <Plus size={16} />
             <span>Add Disaster Location</span>
@@ -246,7 +246,7 @@ export default function DistributionPointView({
                       </div>
                     </td>
                     <td>
-                      {userRole === 'admin' ? (
+                      {String(userRole).toUpperCase() === 'ADMIN' ? (
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
                             className="btn btn-secondary btn-sm"

@@ -144,7 +144,7 @@ export default function RouteView({
           <p>Configure road links between depots and disaster areas, distance metrics, and toggle impassable/blocked corridors</p>
         </div>
 
-        {userRole === 'admin' && (
+        {String(userRole).toUpperCase() === 'ADMIN' && (
           <button className="btn btn-primary" onClick={openAddModal}>
             <Plus size={16} />
             <span>Add Route Corridor</span>
@@ -235,7 +235,7 @@ export default function RouteView({
                       </button>
                     </td>
                     <td>
-                      {userRole === 'admin' ? (
+                      {String(userRole).toUpperCase() === 'ADMIN' ? (
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
                             className="btn btn-secondary btn-sm"

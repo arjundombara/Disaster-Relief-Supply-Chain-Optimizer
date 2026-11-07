@@ -234,7 +234,7 @@ export default function DepotView({
                           <span>Stock</span>
                         </button>
 
-                        {userRole === 'admin' && (
+                        {String(userRole).toUpperCase() === 'ADMIN' && (
                           <>
                             <button
                               className="btn btn-secondary btn-sm"

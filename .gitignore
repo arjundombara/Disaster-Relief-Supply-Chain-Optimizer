@@ -40,3 +40,13 @@ logs/
 *.tmp
 *.bak
 .system_generated/
+backend/backups/
+backend/data/
+backend/data_backup_safety/
+backend/*.hash
+backend/GenerateAdminHash.java
+backend/VerifyAdminPassword.java
+backend/reset-admin.sql
+*.mv.db
+*.lock.db
+*.trace.db

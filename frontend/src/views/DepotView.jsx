@@ -152,7 +152,7 @@ export default function DepotView({
           <p>Manage strategic supply bases, storage capacities, and stockpiles of food, water, and medicine</p>
         </div>
 
-        {userRole === 'admin' && (
+        {String(userRole).toUpperCase() === 'ADMIN' && (
           <button className="btn btn-primary" onClick={openAddModal}>
             <Plus size={16} />
             <span>Add Relief Depot</span>
